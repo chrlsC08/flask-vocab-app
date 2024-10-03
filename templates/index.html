@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocabulary App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        h1 {
+            color: #343a40;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+        }
+        .card-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px; /* Increased gap between cards */
+            justify-content: center; /* Center the cards */
+        }
+        .card {
+            width: 300px; /* Increased width */
+            height: 200px; /* Increased height */
+            perspective: 1000px; /* Perspective for 3D effect */
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d; /* Enable 3D transformation */
+        }
+        .card:hover .card-inner {
+            transform: rotateY(180deg); /* Rotate on hover */
+        }
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden; /* Hide back when front is visible */
+            border-radius: 5px; /* Rounded corners */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px; /* Larger font size */
+            color: #fff;
+        }
+        .card-front {
+            background-color: #007bff; /* Blue background for front */
+        }
+        .card-back {
+            background-color: #28a745; /* Green background for back */
+            transform: rotateY(180deg); /* Rotate back initially */
+        }
+        .card button {
+            margin-top: 15px;
+            padding: 5px 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Vocabulary App</h1>
+
+    <!-- Add Word Form -->
+    <form id="add-word-form">
+        <input type="text" id="new-word" placeholder="New Word" required>
+        <input type="text" id="new-meaning" placeholder="Meaning" required>
+        <button type="submit">Add Word</button>
+    </form>
+
+    <!-- Update Word Form -->
+    <form id="update-word-form">
+        <input type="text" id="update-word" placeholder="Word to Update" required>
+        <input type="text" id="update-meaning" placeholder="New Meaning" required>
+        <button type="submit">Update Word</button>
+    </form>
+
+    <!-- Card Container for Vocabulary Words -->
+    <div class="card-container" id="word-list"></div>
+
+    <script>
+        const wordListElement = document.getElementById('word-list');
+
+        // Fetch and display words
+        async function fetchWords() {
+            const response = await fetch('/words');
+            const words = await response.json();
+            wordListElement.innerHTML = '';
+            for (const [word, meaning] of Object.entries(words)) {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-front">
+                            ${word}
+                        </div>
+                        <div class="card-back">
+                            <p>${meaning}</p>
+                            <button onclick="deleteWord('${word}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+                wordListElement.appendChild(card);
+            }
+        }
+
+        // Add a new word
+        document.getElementById('add-word-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const word = document.getElementById('new-word').value;
+            const meaning = document.getElementById('new-meaning').value;
+            await fetch('/add_word', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ word, meaning })
+            });
+            document.getElementById('new-word').value = '';
+            document.getElementById('new-meaning').value = '';
+            fetchWords();
+        });
+
+        // Update a word
+        document.getElementById('update-word-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const word = document.getElementById('update-word').value;
+            const meaning = document.getElementById('update-meaning').value;
+            await fetch(`/update_word/${word}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ meaning })
+            });
+            document.getElementById('update-word').value = '';
+            document.getElementById('update-meaning').value = '';
+            fetchWords();
+        });
+
+        // Delete a word
+        async function deleteWord(word) {
+            await fetch(`/delete_word/${word}`, {
+                method: 'DELETE'
+            });
+            fetchWords();
+        }
+
+        // Initial fetch of words
+        fetchWords();
+    </script>
+</body>
+</html>
+
